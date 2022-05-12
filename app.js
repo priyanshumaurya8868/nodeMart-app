@@ -5,8 +5,8 @@ const adminRoute = require('./routes/admin')
 const shopRoute = require('./routes/shop')
 app.use(bodyParser.urlencoded({extended:false}))
 
-app.use(adminRoute)
-app.use(shopRoute)
+app.use("/admin",adminRoute)
+app.use("/",shopRoute)
 
 
 app.listen(3000)
