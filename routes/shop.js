@@ -6,7 +6,7 @@ const admindata = require('./admin')
 
 router.get("/", (req,res,next)=>{
     console.log("shop.js "+ admindata.products.map(item => item.title))
-    res.sendFile(path.join(__dirname,"../",'views','shop.html'))
+    res.render('shop',{prods: admindata.products, pageTitle : "Shop", route : "/"})
 })
 
 module.exports = router

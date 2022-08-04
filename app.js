@@ -6,6 +6,9 @@ const path = require("path");
 const admindata = require("./routes/admin");
 const shopRoute = require("./routes/shop");
 
+app.set('view engine', 'pug')
+app.set('views','views')
+
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: true }));
 
