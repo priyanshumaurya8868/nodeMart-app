@@ -5,26 +5,8 @@ const app = express();
 const path = require("path");
 const admindata = require("./routes/admin");
 const shopRoute = require("./routes/shop");
-const expressHbs = require("express-handlebars");
-//......for pug
-// app.set('view engine', 'pug')
 
-//.....for express-handlebars
-// app.engine(
-//   'hbs',
-//   expressHbs({
-//     layoutsDir: "views/layouts/",
-//     defaultLayout: "main-layout",
-//     extname: "hbs",
-//   })
-// );
-// app.set('view engine', 'hbs')
-
-
-//...using ejs
 app.set('view engine', 'ejs')
-
-
 app.set("views", "views");
 
 app.use(morgan("dev"));

@@ -4,13 +4,6 @@ const router = express.Router();
 const products = [];
 
 router.get("/add-product", (req, res, next) => {
-  //...sending static html file
-  // res.sendFile(path.join(__dirname, "../", "views", "add-product.html"));
-
-  //...using pug template engine
-  //  res.render('add-product',{pageTitle : "Shop", route : "/admin/add-product"})
-
-  //...using handlebars template engine
   res.render("add-product", {
     pageTitle: "Add Product",
     route: "/admin/add-product",
