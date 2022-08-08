@@ -1,3 +1,4 @@
+const Sequelize = require("sequelize");
 const Product = require("../models/product");
 
 exports.getAddProduct = (req, res, next) => {
@@ -13,9 +14,29 @@ exports.postAddProduct = (req, res, next) => {
   const imageUrl = req.body.imageUrl;
   const price = req.body.price;
   const description = req.body.description;
-  const product = new Product(null, title, imageUrl, price, description);
-  product.save();
-  res.redirect("/");
+
+  //....traditional method
+  // Product.create({
+  // title : title,
+  // imageUrl : imageUrl,
+  // description : description,
+  // price : price,
+  // userId : req.user.id
+  // })
+
+  //... sice req.user is  not normal js obj, but a sequelize
+  req.user
+    .createProduct({
+      title: title,
+      imageUrl: imageUrl,
+      description: description,
+      price: price,
+    }) //here u  dont need to explicitly define userId
+    .then((result) => {
+      res.redirect("/");
+      console.log("product added!!");
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.getEditProduct = (req, res, next) => {
@@ -24,17 +45,16 @@ exports.getEditProduct = (req, res, next) => {
     return res.redirect("/");
   }
   const prodId = req.params.productId;
-  Product.findById(prodId, (product) => {
-    if (!product) {
-      return res.redirect("/");
-    }
-    res.render("admin/edit-product", {
-      pageTitle: "Edit Product",
-      path: "/admin/edit-product",
-      editing: editMode,
-      product: product,
-    });
-  });
+  Product.findByPk(prodId)
+    .then((product) => {
+      res.render("admin/edit-product", {
+        pageTitle: "Edit Product",
+        path: "/admin/edit-product",
+        editing: editMode,
+        product: product,
+      });
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.postEditProduct = (req, res, next) => {
@@ -43,24 +63,36 @@ exports.postEditProduct = (req, res, next) => {
   const updatedPrice = req.body.price;
   const updatedImageUrl = req.body.imageUrl;
   const updatedDesc = req.body.description;
-  const updatedProduct = new Product(
-    prodId,
-    updatedTitle,
-    updatedImageUrl,
-    updatedPrice,
-    updatedDesc
-  );
 
-  console.log("updating project : " + updatedProduct);
-  updatedProduct.save();
-  res.redirect("/admin/products");
+  //... normal approach
+  // Product.findByPk(prodId)
+
+  //... via  association
+  res.user
+    .getProduct({ where: { id: prodId } })
+    .then((product) => {
+      (product.title = updatedTitle),
+        (product.imageUrl = updatedImageUrl),
+        (product.price = updatedPrice),
+        (product.description = updatedDesc);
+      return product.save(); //update
+    })
+    .then((result) => {
+      console.log("UPDATED PRODUCT!");
+      res.redirect("/admin/products");
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.fetchAll()
-    .then(([rows, fieldColumns]) => {
+  // Product.findAll()
+
+  // ... via Association
+  req.user
+    .getProducts()
+    .then((products) => {
       res.render("admin/products", {
-        prods: rows,
+        prods: products,
         pageTitle: "Admin Products",
         path: "/admin/products",
       });
@@ -70,8 +102,15 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const productId = req.body.productId;
-  console.log("got id : " + productId);
-  Product.deleteById(productId)
-    .then(([p]) => res.redirect("/admin/products"))
+
+  req.user
+    .getProduct({ where: { id: productId } })
+    .then((product) => {
+      product.destroy();
+    })
+    .then((result) => {
+      console.log("DESTROYED PRODUCT");
+      res.redirect("/admin/products");
+    })
     .catch((err) => console.log(err));
 };
