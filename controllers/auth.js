@@ -22,7 +22,7 @@ exports.postLogin = (req, res, next) => {
           console.log(err);
           return;
         }
-        res.redirect("/login");
+        res.redirect("/");
       });
     })
     .catch((err) => console.log(err));
