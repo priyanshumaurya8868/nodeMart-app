@@ -50,7 +50,7 @@ exports.getCart = (req, res, next) => {
       const products = user.cart.items.map(i=>{
         return{ quantity:i.quantity, ...i.productId._doc}
       });
-  
+     console.log(products)
       res.render('shop/cart', {
         path: '/cart',
         pageTitle: 'Your Cart',
