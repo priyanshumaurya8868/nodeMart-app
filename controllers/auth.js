@@ -12,7 +12,13 @@ exports.getLogin = (req, res, next) => {
 };
 
 exports.postLogin = (req, res, next) => {
-  //setting in-memory session
   req.session.isLoggedIn = true;
   res.redirect("/login");
+};
+
+
+exports.postLogout = (req, res, next) => {
+  req.session.destroy(()=>{
+    res.redirect("/")
+  })
 };

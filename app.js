@@ -10,6 +10,9 @@ const errorController = require("./controllers/error");
 const mongoose = require("mongoose");
 const User = require("./models/user");
 const session = require("express-session");
+const MongoDBStore = require('connect-mongodb-session')(session)
+
+const MONGOBD_URI = "mongodb://localhost:27017/storeApi"
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -17,8 +20,14 @@ app.set("views", "views");
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
+
+const store = new MongoDBStore({
+  uri : MONGOBD_URI,
+  collection : "sessions"
+})
+
 app.use(
-  session({ secret: "my_secret_str", resave: false, saveUninitialized: false })
+  session({ secret: "my_secret_str", resave: false, saveUninitialized: false,store :store })
 );
 
 app.use((req,res,next)=>{
@@ -44,7 +53,7 @@ app.use(authRoutes);
 app.use(errorController.get404);
 
 mongoose
-  .connect("mongodb://localhost:27017/storeApi")
+  .connect(MONGOBD_URI)
   .then((result) => {
     User.findOne().then((user) => {
       if (!user) {
