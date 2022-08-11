@@ -10,9 +10,9 @@ const errorController = require("./controllers/error");
 const mongoose = require("mongoose");
 const User = require("./models/user");
 const session = require("express-session");
-const MongoDBStore = require('connect-mongodb-session')(session)
-
-const MONGOBD_URI = "mongodb://localhost:27017/storeApi"
+const MongoDBStore = require("connect-mongodb-session")(session);
+const csrf = require("csurf");
+const MONGOBD_URI = "mongodb://localhost:27017/storeApi";
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -22,32 +22,47 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const store = new MongoDBStore({
-  uri : MONGOBD_URI,
-  collection : "sessions"
-})
+  uri: MONGOBD_URI,
+  collection: "sessions",
+});
+//create instance after initialization of session
+const csrfProtection = csrf();
 
 app.use(
-  session({ secret: "my_secret_str", resave: false, saveUninitialized: false,store :store })
+  session({
+    secret: "my_secret_str",
+    resave: false,
+    saveUninitialized: false,
+    store: store,
+  })
 );
+//use after session init
+app.use(csrfProtection);
 
-app.use((req,res,next)=>{
+app.use((req, res, next) => {
   //modifying request object for other middlewares with session
   req.isLoggedIn = req.session.isLoggedIn;
-  next()
-})
+  next();
+});
 
 app.use((req, res, next) => {
   if (!req.session.user) {
     return next();
   }
   User.findById(req.session.user._id)
-    .then(user => {
+    .then((user) => {
       req.user = user;
       next();
     })
-    .catch(err => console.log(err));
+    .catch((err) => console.log(err));
 });
 
+//things u want them to avaliable for all the rendering views
+app.use((req, res, next) => {
+  res.locals.isAuthenticated = req.session.isLoggedIn;
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
 
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
@@ -58,18 +73,6 @@ app.use(errorController.get404);
 mongoose
   .connect(MONGOBD_URI)
   .then((result) => {
-    User.findOne().then((user) => {
-      if (!user) {
-        const user = new User({
-          name: "Max",
-          email: "max@test.com",
-          cart: {
-            items: [],
-          },
-        });
-        user.save();
-      }
-    });
     app.listen(3000);
   })
   .catch((err) => {
