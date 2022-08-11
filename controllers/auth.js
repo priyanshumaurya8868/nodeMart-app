@@ -1,21 +1,35 @@
 const User = require("../models/user");
 const bcrypt = require("bcryptjs");
+
+
 exports.getLogin = (req, res, next) => {
   const isLoggedIn = req.session.isLoggedIn;
   console.log("is Loggedin : " + isLoggedIn);
-
+  let message = req.flash('error');
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render("auth/login", {
     path: "/login",
     pageTitle: "Login",
-    isAuthenticated: isLoggedIn,
+    errorMessage : message
   });
 };
 
 exports.getSignup = (req, res, next) => {
+  let message = req.flash('error');
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
+
   res.render("auth/signup", {
     path: "/signup",
     pageTitle: "Signup",
-    isAuthenticated: false,
+    errorMessage : message
   });
 };
 
@@ -25,6 +39,7 @@ exports.postSignup = (req, res, next) => {
   User.findOne({ email: email })
     .then((userDoc) => {
       if (userDoc) {
+        req.flash('error', 'Email alread Exists !!')
         return res.redirect("/signup");
       }
       return bcrypt
@@ -49,10 +64,10 @@ exports.postSignup = (req, res, next) => {
 exports.postLogin = (req, res, next) => {
   const email = req.body.email;
   const password = req.body.password;
-
   User.findOne({ email: email })
     .then((user) => {
       if (!user) {
+        req.flash('error', 'Invalid Password or Email !!')
         return res.redirect("/login");
       }
       bcrypt.compare(password, user.password).then((doMatch) => {
@@ -64,6 +79,7 @@ exports.postLogin = (req, res, next) => {
             res.redirect("/");
           });
         }else{
+          req.flash('error', 'Invalid Password or Email !!')
           res.redirect('/login')
         }      
       });

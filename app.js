@@ -12,6 +12,8 @@ const User = require("./models/user");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const csrf = require("csurf");
+const flash = require('connect-flash');
+
 const MONGOBD_URI = "mongodb://localhost:27017/storeApi";
 
 app.set("view engine", "ejs");
@@ -38,6 +40,8 @@ app.use(
 );
 //use after session init
 app.use(csrfProtection);
+app.use(flash()); //uses session behind the sceens
+
 
 app.use((req, res, next) => {
   //modifying request object for other middlewares with session
