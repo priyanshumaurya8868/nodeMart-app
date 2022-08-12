@@ -10,7 +10,7 @@ var transporter = nodemailer.createTransport({
     user: process.env.mail,
     pass: process.env.mail_password,
   },
-});
+}); //source -> w3schools
 
 exports.getLogin = (req, res, next) => {
   let message = req.flash('error');
@@ -91,7 +91,11 @@ exports.postLogin = (req, res, next) => {
           res.redirect('/login');
         });
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.getSignup = (req, res, next) => {
@@ -151,10 +155,12 @@ exports.postSignup = (req, res, next) => {
       //   from: 'shop@node-complete.com',
       //   subject: 'Signup succeeded!',
       //   html: '<h1>You successfully signed up!</h1>'
-      // });
+      // },(err,info)=>{});
     })
     .catch(err => {
-      console.log(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 };
 
@@ -218,6 +224,10 @@ exports.postReset = (req, res, next) => {
             }
           }
         );
+      }).catch(err => {
+        const error = new Error(err);
+        error.httpStatusCode = 500;
+        return next(error);
       });
   });
 };
@@ -240,9 +250,11 @@ exports.getNewPassword = (req, res, next) => {
         passwordToken: token,
       });
     })
-    .catch((err) => {
-      console.log(err);
-    });
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    })
 };
 
 exports.postNewPassword = (req, res, next) => {
@@ -269,7 +281,9 @@ exports.postNewPassword = (req, res, next) => {
     .then((result) => {
       res.redirect("/login");
     })
-    .catch((err) => {
-      console.log(err);
-    });
+    .catch(err => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    })
 };

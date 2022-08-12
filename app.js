@@ -12,7 +12,7 @@ const User = require("./models/user");
 const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const csrf = require("csurf");
-const flash = require('connect-flash');
+const flash = require("connect-flash");
 
 const MONGOBD_URI = "mongodb://localhost:27017/storeApi";
 
@@ -42,7 +42,6 @@ app.use(
 app.use(csrfProtection);
 app.use(flash()); //uses session behind the sceens
 
-
 app.use((req, res, next) => {
   //modifying request object for other middlewares with session
   req.isLoggedIn = req.session.isLoggedIn;
@@ -58,7 +57,9 @@ app.use((req, res, next) => {
       req.user = user;
       next();
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+      next(err);
+    });
 });
 
 //things u want them to avaliable for all the rendering views
@@ -68,11 +69,31 @@ app.use((req, res, next) => {
   next();
 });
 
+
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
 
+app.get('/500', errorController.get500);
+
 app.use(errorController.get404);
+
+
+// for sync -> use try/catch
+// async -> use then/catch
+
+// whenever we call next and pass and arg  into it, then  
+// for that express automatically look  for the middleware of 4 params, instead of 3 one
+app.use((error, req, res, next) => {
+  // res.status(error.httpStatusCode).render(...);
+  // res.redirect('/500');
+  console(error)
+  res.status(500).render('500', {
+    pageTitle: 'Error!',
+    path: '/500',
+    isAuthenticated: req.session.isLoggedIn
+  });
+});
 
 mongoose
   .connect(MONGOBD_URI)
