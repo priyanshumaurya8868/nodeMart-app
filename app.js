@@ -13,15 +13,41 @@ const session = require("express-session");
 const MongoDBStore = require("connect-mongodb-session")(session);
 const csrf = require("csurf");
 const flash = require("connect-flash");
-
+const multer = require("multer");
 const MONGOBD_URI = "mongodb://localhost:27017/storeApi";
 
 app.set("view engine", "ejs");
 app.set("views", "views");
 
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg" ||
+    file.mimetype === "image/jpeg"
+  ) {
+    cb(null, true); //for acceptance
+  } else {
+    cb(null, false); // rejection
+  }
+};
+
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "images");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
 app.use(morgan("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(multer({
+  storage : fileStorage,
+  fileFilter :fileFilter
+}).single('image'));
 app.use(express.static(path.join(__dirname, "public")));
+app.use('/images', express.static(path.join(__dirname, 'images')));
 
 const store = new MongoDBStore({
   uri: MONGOBD_URI,
@@ -69,29 +95,26 @@ app.use((req, res, next) => {
   next();
 });
 
-
 app.use("/admin", adminRoutes);
 app.use(shopRoutes);
 app.use(authRoutes);
-
-app.get('/500', errorController.get500);
+app.get("/500", errorController.get500);
 
 app.use(errorController.get404);
-
 
 // for sync -> use try/catch
 // async -> use then/catch
 
-// whenever we call next and pass and arg  into it, then  
+// whenever we call next and pass and arg  into it, then
 // for that express automatically look  for the middleware of 4 params, instead of 3 one
 app.use((error, req, res, next) => {
   // res.status(error.httpStatusCode).render(...);
   // res.redirect('/500');
-  console(error)
-  res.status(500).render('500', {
-    pageTitle: 'Error!',
-    path: '/500',
-    isAuthenticated: req.session.isLoggedIn
+  console.log(error);
+  res.status(500).render("500", {
+    pageTitle: "Error!",
+    path: "/500",
+    isAuthenticated: req.isLoggedIn,
   });
 });
 
