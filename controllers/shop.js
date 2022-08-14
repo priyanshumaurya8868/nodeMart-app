@@ -3,33 +3,33 @@ const Order = require("../models/order");
 const User = require("../models/order");
 const fs = require("fs");
 const path = require("path");
-
+const stripe = require("stripe")(process.env.stripe_secret_key);
 const ITEMS_PER_PAGE = 2;
 
 exports.getProducts = (req, res, next) => {
-  const page = +req.query.page ||1;
+  const page = +req.query.page || 1;
   let totalProducts;
   Product.find()
-  .countDocuments()
-  .then(count=>{
-    totalProducts = count;
-    return Product.find()
-    .skip((page -1)*ITEMS_PER_PAGE)
-    .limit(ITEMS_PER_PAGE)
-  })
-  .then((products) => {
-    res.render("shop/product-list", {
-      prods: products,
-      pageTitle: "All Products",
-      path: "/products",
-      currentPage : page,
-      hasNextPage : page * ITEMS_PER_PAGE < totalProducts,
-      hasPreviousPage : page > 1,
-      nextPage : page +1,
-      previousPage : page -1,
-      lastPage : Math.ceil(totalProducts/ITEMS_PER_PAGE)
-    });
-  })
+    .countDocuments()
+    .then((count) => {
+      totalProducts = count;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
+    .then((products) => {
+      res.render("shop/product-list", {
+        prods: products,
+        pageTitle: "All Products",
+        path: "/products",
+        currentPage: page,
+        hasNextPage: page * ITEMS_PER_PAGE < totalProducts,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalProducts / ITEMS_PER_PAGE),
+      });
+    })
     .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
@@ -59,27 +59,27 @@ exports.getIndex = (req, res, next) => {
   let totalItems;
 
   Product.find()
-  .countDocuments()
-  .then(numProducts=>{
-    totalItems = numProducts
-    return Product.find()
-    .skip((page-1)*ITEMS_PER_PAGE)
-    .limit(ITEMS_PER_PAGE)
-  })  
-  .then((products) => {
-    console.log("is Auth : " + req.isAuthenticated);
-    res.render("shop/index", {
-      prods: products,
-      pageTitle: "Shop",
-      path: "/",
-      currentPage : page,
-      hasNextPage : ITEMS_PER_PAGE * page < totalItems,
-      hasPreviousPage : page > 1,
-      nextPage : page +1,
-      previousPage : page -1,
-      lastPage : Math.ceil(totalItems / ITEMS_PER_PAGE)
-    });
-  })
+    .countDocuments()
+    .then((numProducts) => {
+      totalItems = numProducts;
+      return Product.find()
+        .skip((page - 1) * ITEMS_PER_PAGE)
+        .limit(ITEMS_PER_PAGE);
+    })
+    .then((products) => {
+      console.log("is Auth : " + req.isAuthenticated);
+      res.render("shop/index", {
+        prods: products,
+        pageTitle: "Shop",
+        path: "/",
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE),
+      });
+    })
     .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
@@ -126,10 +126,51 @@ exports.postCart = (req, res, next) => {
 };
 
 exports.getCheckout = (req, res, next) => {
-  res.render("shop/checkout", {
-    path: "/checkout",
-    pageTitle: "Checkout",
-  });
+  let products;
+  let total;
+  req.user
+    .populate(["cart.items.productId"])
+    .then((user) => {
+      total = 0;
+      products = user.cart.items.map((i) => {
+        const pPrice = +i.productId.price;
+        const pQty = +i.quantity;
+        total += pQty * pPrice;
+        return { quantity: i.quantity, product: { ...i.productId._doc } };
+      });
+      return stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: products.map((p) => {
+          return {
+            price_data: {
+              product_data: { name: p.product.title },
+              currency: "inr",
+              unit_amount: p.product.price * 100,
+            },
+            quantity: p.quantity,
+          };
+        }),
+        mode: "payment",
+        success_url:
+          req.protocol + "://" + req.get("host") + "/checkout/success", // => http://localhost:3000
+        cancel_url: req.protocol + "://" + req.get("host") + "/checkout/cancel",
+      });
+    })
+    .then((session) => {
+      res.render("shop/checkout", {
+        path: "/checkout",
+        pageTitle: "Checkout",
+        products: products,
+        totalSum: total,
+        sessionId: session.id,
+        pub_key : process.env.stripe_publish_key
+      });
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
@@ -176,7 +217,36 @@ exports.postOrder = (req, res, next) => {
       return next(error);
     });
 };
-
+exports.getCheckoutSuccess = (req, res, next) => {
+  req.user
+    .populate(["cart.items.productId"])
+    .then((user) => {
+      // console.log(user)
+      console.log(user.cart.items);
+      const products = user.cart.items.map((i) => {
+        return { quantity: i.quantity, product: { ...i.productId._doc } };
+      });
+      const order = new Order({
+        user: {
+          name: req.user.name,
+          userId: req.user,
+        },
+        products: products,
+      });
+      return order.save();
+    })
+    .then((result) => {
+      return req.user.clearCart();
+    })
+    .then(() => {
+      res.redirect("/orders");
+    })
+    .catch((err) => {
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
+    });
+};
 exports.getOrders = (req, res, next) => {
   Order.find({ "user.userId": req.user._id })
     .then((orders) => {
@@ -194,7 +264,7 @@ exports.getOrders = (req, res, next) => {
     });
 };
 
-const PDFDocument = require('pdfkit');
+const PDFDocument = require("pdfkit");
 
 exports.getInvoice = (req, res, next) => {
   const orderId = req.params.orderId;
@@ -232,31 +302,31 @@ exports.getInvoice = (req, res, next) => {
       //   )
       //   file.pipe(res)
 
-        const pdfDoc = new PDFDocument();
-        pdfDoc.pipe(fs.createWriteStream(invoicePath))
-        pdfDoc.pipe(res);
+      const pdfDoc = new PDFDocument();
+      pdfDoc.pipe(fs.createWriteStream(invoicePath));
+      pdfDoc.pipe(res);
 
-        pdfDoc.fontSize(26).text('Invoice',{
-          underline : true
-        })
-        pdfDoc.text('----------------------------')
-        let totalPrice = 0;
-        order.products.forEach(prod=>{
-          totalPrice += prod.quantity * prod.product.price
-          pdfDoc
+      pdfDoc.fontSize(26).text("Invoice", {
+        underline: true,
+      });
+      pdfDoc.text("----------------------------");
+      let totalPrice = 0;
+      order.products.forEach((prod) => {
+        totalPrice += prod.quantity * prod.product.price;
+        pdfDoc
           .fontSize(14)
           .text(
             prod.product.title +
-            ' - ' +
-            prod.quantity+
-            ' x ' +
-            ' $ '+
-            prod.product.price
-          )
-        })
-        
-      pdfDoc.text('---');
-      pdfDoc.fontSize(20).text('Total Price: $' + totalPrice);
+              " - " +
+              prod.quantity +
+              " x " +
+              " $ " +
+              prod.product.price
+          );
+      });
+
+      pdfDoc.text("---");
+      pdfDoc.fontSize(20).text("Total Price: $" + totalPrice);
 
       pdfDoc.end();
     })
