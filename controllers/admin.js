@@ -68,7 +68,7 @@ exports.postEditProduct = (req, res, next) => {
   // Product.findByPk(prodId)
 
   //... via  association
-  res.user
+  req.user
     .getProduct({ where: { id: prodId } })
     .then((product) => {
       (product.title = updatedTitle),
