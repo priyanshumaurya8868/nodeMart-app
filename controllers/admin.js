@@ -69,12 +69,13 @@ exports.postEditProduct = (req, res, next) => {
 
   //... via  association
   req.user
-    .getProduct({ where: { id: prodId } })
-    .then((product) => {
-      (product.title = updatedTitle),
-        (product.imageUrl = updatedImageUrl),
-        (product.price = updatedPrice),
-        (product.description = updatedDesc);
+    .getProducts({ where: { id: prodId } })
+    .then((products) => {
+      const product = products[0]
+        product.title = updatedTitle,
+        product.imageUrl = updatedImageUrl,
+        product.price = updatedPrice,
+        product.description = updatedDesc;
       return product.save(); //update
     })
     .then((result) => {
@@ -104,8 +105,9 @@ exports.postDeleteProduct = (req, res, next) => {
   const productId = req.body.productId;
 
   req.user
-    .getProduct({ where: { id: productId } })
-    .then((product) => {
+    .getProducts({ where: { id: productId } })
+    .then((products) => {
+      const product = products[0]
       product.destroy();
     })
     .then((result) => {
