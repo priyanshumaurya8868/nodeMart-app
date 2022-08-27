@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const { validationResult } = require("express-validator");
 
 var transporter = nodemailer.createTransport({
+  name : 'nodemart.com',
   service: "gmail",
   auth: {
     user: process.env.mail,
