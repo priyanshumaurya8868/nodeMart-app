@@ -2,7 +2,7 @@ const { validationResult } = require("express-validator");
 const Product = require("../models/product");
 const fileHelper = require("../utils/file");
 
-const ITEMS_PER_PAGE = 2;
+const ITEMS_PER_PAGE = 5;
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
@@ -24,7 +24,7 @@ exports.postAddProduct = (req, res, next) => {
   console.log(image)
   //you still need to  add '/' infornt of imageUrl inorder
   // to display(changing from relative path  to absoult path)
-  const imageUrl = image.path;
+ 
   console.log(image)
 
   if (!image) {
@@ -41,7 +41,8 @@ exports.postAddProduct = (req, res, next) => {
       errorMessage: "Attached file is not an image.",
       validationErrors: [],
     });
-  }
+  } 
+  const imageUrl = image.path;
 
   if (!errors.isEmpty()) {
     console.log(errors.array());

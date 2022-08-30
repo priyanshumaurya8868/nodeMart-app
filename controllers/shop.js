@@ -4,7 +4,7 @@ const User = require("../models/order");
 const fs = require("fs");
 const path = require("path");
 const stripe = require("stripe")(process.env.stripe_secret_key);
-const ITEMS_PER_PAGE = 2;
+const ITEMS_PER_PAGE = 5;
 
 exports.getProducts = (req, res, next) => {
   const page = +req.query.page || 1;

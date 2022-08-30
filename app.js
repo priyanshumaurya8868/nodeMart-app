@@ -14,7 +14,7 @@ const MongoDBStore = require("connect-mongodb-session")(session);
 const csrf = require("csurf");
 const flash = require("connect-flash");
 const multer = require("multer");
-const MONGOBD_URI = "mongodb://localhost:27017/storeApi";
+const MONGOBD_URI = process.env.mongoDB_uri
 
 app.set("view engine", "ejs");
 app.set("views", "views");
@@ -49,10 +49,10 @@ app.use(multer({
 app.use(express.static(path.join(__dirname, "public")));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-const store = new MongoDBStore({
-  uri: MONGOBD_URI,
-  collection: "sessions",
-});
+// const store = new MongoDBStore({
+//   uri: MONGOBD_URI,
+//   collection: "sessions",
+// });
 //create instance after initialization of session
 const csrfProtection = csrf();
 
@@ -61,7 +61,7 @@ app.use(
     secret: "my_secret_str",
     resave: false,
     saveUninitialized: false,
-    store: store,
+    // store: store,
   })
 );
 //use after session init
@@ -124,5 +124,7 @@ mongoose
     app.listen(3000);
   })
   .catch((err) => {
+    console.log("********************************")
+    console.log(process.env.mongoDB_uri)
     console.log(err);
   });
